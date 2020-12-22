@@ -21,7 +21,6 @@ export {
   RequestHandler,
   RequestHandlerMetaInfo,
   RequestParams,
-  RequestQuery,
   ResponseResolver,
   ResponseResolverReturnType,
   AsyncResponseResolverReturnType,

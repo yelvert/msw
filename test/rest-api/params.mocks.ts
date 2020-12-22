@@ -5,19 +5,14 @@ interface ResponseType {
   messageId: string
 }
 
-interface RequestParams {
-  username: string
-  messageId: string
-}
-
 const worker = setupWorker(
-  rest.get<any, ResponseType, RequestParams>(
+  rest.get(
     'https://api.github.com/users/:username/messages/:messageId',
     (req, res, ctx) => {
       const { username, messageId } = req.params
 
       return res(
-        ctx.json({
+        ctx.json<ResponseType>({
           username,
           messageId,
         }),

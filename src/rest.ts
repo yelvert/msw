@@ -2,7 +2,6 @@ import {
   RequestHandler,
   ResponseResolver,
   MockedRequest,
-  DefaultRequestBodyType,
   RequestParams,
 } from './utils/handlers/requestHandler'
 import { Mask } from './setupWorker/glossary'
@@ -68,23 +67,19 @@ export interface ParsedRestRequest {
 }
 
 const createRestHandler = (method: RESTMethods) => {
-  return <
-    RequestBodyType = DefaultRequestBodyType,
-    ResponseBodyType = any,
-    RequestParamsType extends RequestParams = RequestParams
-  >(
-    mask: Mask,
+  return <RequestMask extends Mask>(
+    mask: RequestMask,
     resolver: ResponseResolver<
-      MockedRequest<RequestBodyType, RequestParamsType>,
+      MockedRequest<unknown, RequestParams<RequestMask>>,
       typeof restContext,
-      ResponseBodyType
+      unknown
     >,
   ): RequestHandler<
-    MockedRequest<RequestBodyType, RequestParamsType>,
+    MockedRequest<unknown, RequestParams<RequestMask>>,
     typeof restContext,
     ParsedRestRequest,
-    MockedRequest<RequestBodyType>,
-    ResponseBodyType
+    MockedRequest<unknown>,
+    unknown
   > => {
     const resolvedMask = getUrlByMask(mask)
     const callFrame = getCallFrame()
@@ -143,9 +138,9 @@ ${queryParams
           )
         }
 
-        const publicUrl = getPublicUrlFromRequest(req)
+        const publicUrl = getPublicUrlFromRequest(req as MockedRequest)
 
-        const loggedRequest = prepareRequest(req)
+        const loggedRequest = prepareRequest(req as MockedRequest)
         const loggedResponse = prepareResponse(res)
 
         console.groupCollapsed(

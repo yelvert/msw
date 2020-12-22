@@ -17,7 +17,7 @@ export type DefaultRequestBodyType = Record<string, any> | string | undefined
 
 export interface MockedRequest<
   BodyType = DefaultRequestBodyType,
-  RequestParamsType = RequestParams
+  RequestParamsType = RequestParams<any>
 > {
   url: URL
   method: Request['method']
@@ -37,13 +37,17 @@ export interface MockedRequest<
   params: RequestParamsType
 }
 
-export type RequestQuery = {
-  [queryName: string]: any
-}
-
-export type RequestParams = {
-  [paramName: string]: any
-}
+export type RequestParams<T extends Mask> = RegExp extends T
+  ? { [paramName: string]: any }
+  : string extends T
+  ? Record<string, string>
+  : T extends `http://${infer Rest}` | `https://${infer Rest}` // Otherwise it would add an empty param
+  ? RequestParams<Rest>
+  : T extends `${infer _start}:${infer Param}/${infer Rest}`
+  ? { [k in Param | keyof RequestParams<Rest>]: string }
+  : T extends `${infer _start}:${infer Param}`
+  ? { [k in Param]: string }
+  : { [paramName: string]: any }
 
 export type ResponseResolverReturnType<R> = R | undefined | void
 export type AsyncResponseResolverReturnType<R> =
