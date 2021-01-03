@@ -37,17 +37,25 @@ export interface MockedRequest<
   params: RequestParamsType
 }
 
-export type RequestParams<T extends Mask> = RegExp extends T
-  ? { [paramName: string]: any }
-  : string extends T
-  ? Record<string, string>
-  : T extends `http://${infer Rest}` | `https://${infer Rest}` // Otherwise it would add an empty param
-  ? RequestParams<Rest>
-  : T extends `${infer _start}:${infer Param}/${infer Rest}`
-  ? { [k in Param | keyof RequestParams<Rest>]: string }
-  : T extends `${infer _start}:${infer Param}`
-  ? { [k in Param]: string }
-  : { [paramName: string]: any }
+export type PathParams<Path extends string> = Path extends
+  | `http://${infer Rest}`
+  | `https://${infer Rest}` // Otherwise it would add an empty param
+  ? PathParams<Rest>
+  : Path extends `:${infer Param}/${infer Rest}`
+  ? Param | PathParams<Rest>
+  : Path extends `:${infer Param}`
+  ? Param
+  : Path extends `${infer _Prefix}:${infer Rest}`
+  ? PathParams<`:${Rest}`>
+  : never
+
+export type RequestParams<Path extends Mask> = Path extends RegExp
+  ? { [paramName: string]: string }
+  : Path extends string
+  ? {
+      [K in PathParams<Path>]: string
+    }
+  : never
 
 export type ResponseResolverReturnType<R> = R | undefined | void
 export type AsyncResponseResolverReturnType<R> =
