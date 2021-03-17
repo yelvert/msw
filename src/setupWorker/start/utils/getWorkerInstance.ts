@@ -51,7 +51,7 @@ export const getWorkerInstance = async (
   // When the Service Worker wasn't found, register it anew and return the reference.
   const [error, instance] = await until<ServiceWorkerInstanceTuple>(
     async () => {
-      const registration = await navigator.serviceWorker.register(url, options)
+      const registration = await navigator.serviceWorker.register(absoluteWorkerUrl, options)
       return [
         // Compare existing worker registration by its worker URL,
         // to prevent irrelevant workers to resolve here (such as Codesandbox worker).
