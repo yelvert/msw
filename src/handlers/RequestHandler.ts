@@ -1,10 +1,5 @@
 import { Headers } from 'headers-utils'
-import {
-  ResponseTransformer,
-  MockedResponse,
-  response,
-  ResponseComposition,
-} from '../response'
+import { MockedResponse, response, ResponseComposition } from '../response'
 import { getCallFrame } from '../utils/internal/getCallFrame'
 import { status } from '../context/status'
 import { set } from '../context/set'
@@ -18,18 +13,18 @@ export const defaultContext = {
   fetch,
 }
 
-export type DefaultMultipartBodyType = Record<
+export type DefaultRequestMultipartBody = Record<
   string,
   string | File | (string | File)[]
 >
 
-export type DefaultRequestBodyType =
+export type DefaultRequestBody =
   | Record<string, any>
-  | DefaultMultipartBodyType
+  | DefaultRequestMultipartBody
   | string
   | undefined
 
-export interface MockedRequest<BodyType = DefaultRequestBodyType> {
+export interface MockedRequest<Body = DefaultRequestBody> {
   id: string
   url: URL
   method: Request['method']
@@ -44,7 +39,7 @@ export interface MockedRequest<BodyType = DefaultRequestBodyType> {
   redirect: Request['redirect']
   referrer: Request['referrer']
   referrerPolicy: Request['referrerPolicy']
-  body: BodyType
+  body: Body
   bodyUsed: Request['bodyUsed']
 }
 
@@ -56,7 +51,7 @@ type RequestHandlerInfo<ExtraInfo extends Record<string, any>> = {
   header: string
 } & ExtraInfo
 
-type ContextMap = Record<string, (...args: any) => ResponseTransformer>
+type ContextMap = Record<string, (...args: any[]) => any>
 
 export type ResponseResolverReturnType<R> = R | undefined | void
 export type AsyncResponseResolverReturnType<R> =
@@ -88,9 +83,9 @@ export interface RequestHandlerExecutionResult<PublicRequestType> {
 
 export abstract class RequestHandler<
   HandlerInfo extends Record<string, any> = Record<string, any>,
-  RequestType extends MockedRequest = MockedRequest,
+  Request extends MockedRequest = MockedRequest,
   ParsedResult = any,
-  PublicRequestType extends MockedRequest = RequestType
+  PublicRequest extends MockedRequest = Request
 > {
   public info: RequestHandlerDefaultInfo & RequestHandlerInfo<HandlerInfo>
   private ctx: ContextMap
@@ -113,30 +108,33 @@ export abstract class RequestHandler<
   /**
    * Determine if the captured request should be mocked.
    */
-  abstract predicate(request: RequestType, parsedResult: ParsedResult): boolean
+  abstract predicate(
+    request: MockedRequest,
+    parsedResult: ParsedResult,
+  ): boolean
 
   /**
    * Print out the successfully handled request.
    */
   abstract log(
-    request: RequestType,
+    request: Request,
     res: any,
     handler: this,
-    parsedResilt: ParsedResult,
+    parsedResult: ParsedResult,
   ): void
 
   /**
    * Parse the captured request to extract additional information from it.
    * Parsed result is then exposed to other methods of this request handler.
    */
-  parse(request: RequestType): ParsedResult {
+  parse(request: MockedRequest): ParsedResult {
     return null as any
   }
 
   /**
    * Test if this handler matches the given request.
    */
-  public test(request: RequestType): boolean {
+  public test(request: MockedRequest): boolean {
     return this.predicate(request, this.parse(request))
   }
 
@@ -145,10 +143,10 @@ export abstract class RequestHandler<
    * from the captured request and its parsed result.
    */
   protected getPublicRequest(
-    request: RequestType,
+    request: MockedRequest,
     parsedResult: ParsedResult,
-  ): PublicRequestType {
-    return request as any
+  ) {
+    return request as PublicRequest
   }
 
   public markAsSkipped(shouldSkip = true) {
@@ -160,8 +158,8 @@ export abstract class RequestHandler<
    * using the given resolver function.
    */
   public async run(
-    request: RequestType,
-  ): Promise<RequestHandlerExecutionResult<PublicRequestType> | null> {
+    request: MockedRequest,
+  ): Promise<RequestHandlerExecutionResult<PublicRequest> | null> {
     if (this.shouldSkip) {
       return null
     }
@@ -189,9 +187,9 @@ export abstract class RequestHandler<
 
   private createExecutionResult(
     parsedResult: ParsedResult,
-    request: PublicRequestType,
+    request: PublicRequest,
     response: any,
-  ): RequestHandlerExecutionResult<PublicRequestType> {
+  ): RequestHandlerExecutionResult<PublicRequest> {
     return {
       handler: this,
       parsedResult: parsedResult || null,

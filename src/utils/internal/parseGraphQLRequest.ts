@@ -1,12 +1,12 @@
 import { OperationDefinitionNode, OperationTypeNode, parse } from 'graphql'
-import { GraphQLVariablesType } from '../../handlers/GraphQLHandler'
+import { GraphQLVariables } from '../../handlers/GraphQLHandler'
 import { MockedRequest } from '../../handlers/RequestHandler'
 import { getPublicUrlFromRequest } from '../request/getPublicUrlFromRequest'
 import { jsonParse } from './jsonParse'
 
 interface GraphQLInput {
   query: string | null
-  variables?: GraphQLVariablesType
+  variables?: GraphQLVariables
 }
 
 export interface ParsedGraphQLQuery {
@@ -15,7 +15,7 @@ export interface ParsedGraphQLQuery {
 }
 
 export type ParsedGraphQLRequest<
-  VariablesType extends GraphQLVariablesType = GraphQLVariablesType
+  VariablesType extends GraphQLVariables = GraphQLVariables
 > =
   | (ParsedGraphQLQuery & {
       variables?: VariablesType
@@ -47,7 +47,7 @@ export type GraphQLMultipartRequestBody = {
   [fileName: string]: File
 }
 
-function extractMultipartVariables<VariablesType extends GraphQLVariablesType>(
+function extractMultipartVariables<VariablesType extends GraphQLVariables>(
   variables: VariablesType,
   map: GraphQLParsedOperationsMap,
   files: Record<string, File>,
@@ -107,7 +107,7 @@ function getGraphQLInput(request: MockedRequest<any>): GraphQLInput | null {
           ...files
         } = request.body as GraphQLMultipartRequestBody
         const parsedOperations =
-          jsonParse<{ query?: string; variables?: GraphQLVariablesType }>(
+          jsonParse<{ query?: string; variables?: GraphQLVariables }>(
             operations,
           ) || {}
 
@@ -142,11 +142,11 @@ function getGraphQLInput(request: MockedRequest<any>): GraphQLInput | null {
  */
 export function parseGraphQLRequest(
   request: MockedRequest<any>,
-): ParsedGraphQLRequest | null {
+): ParsedGraphQLRequest {
   const input = getGraphQLInput(request)
 
   if (!input || !input.query) {
-    return null
+    return undefined
   }
 
   const { query, variables } = input
@@ -161,7 +161,7 @@ export function parseGraphQLRequest(
       `[MSW] Failed to intercept a GraphQL request to "${request.method} ${requestPublicUrl}": cannot parse query. See the error message from the parser below.`,
     )
     console.error(parsedResult)
-    return null
+    return undefined
   }
 
   return {

@@ -1,11 +1,7 @@
 import { until } from '@open-draft/until'
 import { getWorkerInstance } from './utils/getWorkerInstance'
 import { activateMocking } from './utils/activateMocking'
-import {
-  SetupWorkerInternalContext,
-  ServiceWorkerInstanceTuple,
-  StartOptions,
-} from '../glossary'
+import { SetupWorkerInternalContext, StartOptions } from '../glossary'
 import { createRequestListener } from '../../utils/worker/createRequestListener'
 import { requestIntegrityCheck } from '../../utils/internal/requestIntegrityCheck'
 import { deferNetworkRequestsUntil } from '../../utils/deferNetworkRequestsUntil'
@@ -37,10 +33,9 @@ export const createStart = (context: SetupWorkerInternalContext) => {
 
     const startWorkerInstance = async () => {
       if (!('serviceWorker' in navigator)) {
-        console.error(
+        throw new Error(
           `[MSW] Failed to register a Service Worker: this browser does not support Service Workers (see https://caniuse.com/serviceworkers), or your application is running on an insecure host (consider using HTTPS for custom hostnames).`,
         )
-        return null
       }
 
       // Remove all previously existing event listeners.
@@ -56,38 +51,28 @@ export const createStart = (context: SetupWorkerInternalContext) => {
 
       context.workerChannel.on('RESPONSE', createResponseListener(context))
 
-      const [, instance] = await until<ServiceWorkerInstanceTuple | null>(() =>
-        getWorkerInstance(
-          resolvedOptions.serviceWorker.url,
-          resolvedOptions.serviceWorker.options,
-          resolvedOptions.findWorker,
-        ),
+      const instance = await getWorkerInstance(
+        resolvedOptions.serviceWorker.url,
+        resolvedOptions.serviceWorker.options,
+        resolvedOptions.findWorker,
       )
-
-      if (!instance) {
-        return null
-      }
 
       const [worker, registration] = instance
 
       if (!worker) {
-        if (options?.findWorker) {
-          console.error(`\
-[MSW] Failed to locate the Service Worker registration using a custom "findWorker" predicate.
+        const missingWorkerMessage = options?.findWorker
+          ? `[MSW] Failed to locate the Service Worker registration using a custom "findWorker" predicate.
 
 Please ensure that the custom predicate properly locates the Service Worker registration at "${resolvedOptions.serviceWorker.url}".
 More details: https://mswjs.io/docs/api/setup-worker/start#findworker
-`)
-        } else {
-          console.error(`\
-[MSW] Failed to locate the Service Worker registration.
+`
+          : `[MSW] Failed to locate the Service Worker registration.
 
 This most likely means that the worker script URL "${resolvedOptions.serviceWorker.url}" cannot resolve against the actual public hostname (${location.host}). This may happen if your application runs behind a proxy, or has a dynamic hostname.
 
-Please consider using a custom "serviceWorker.url" option to point to the actual worker script location, or a custom "findWorker" option to resolve the Service Worker registration manually. More details: https://mswjs.io/docs/api/setup-worker/start`)
-        }
+Please consider using a custom "serviceWorker.url" option to point to the actual worker script location, or a custom "findWorker" option to resolve the Service Worker registration manually. More details: https://mswjs.io/docs/api/setup-worker/start`
 
-        return null
+        throw new Error(missingWorkerMessage)
       }
 
       context.worker = worker
@@ -125,14 +110,9 @@ If this message still persists after updating, please report an issue: https://g
       }
 
       // Signal the Service Worker to enable requests interception
-      const [activationError] = await until(() =>
-        activateMocking(context, options),
-      )
-
-      if (activationError) {
-        console.error('Failed to enable mocking', activationError)
-        return null
-      }
+      await activateMocking(context, options).catch((err) => {
+        throw new Error(`Failed to enable mocking: ${err?.message}`)
+      })
 
       context.keepAliveInterval = window.setInterval(
         () => context.workerChannel.send('KEEPALIVE_REQUEST'),

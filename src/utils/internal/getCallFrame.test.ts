@@ -168,3 +168,11 @@ test('Safari on macOS error stack', () => {
     './test/msw-api/setup-worker/printHandlers.mocks.ts@http://localhost:56460/main.js:1376:5',
   )
 })
+
+test('Handles the undefined stack trace', () => {
+  mockStack.mockImplementationOnce(() => undefined)
+  expect(() => getCallFrame()).not.toThrow(TypeError)
+
+  mockStack.mockImplementationOnce(() => null)
+  expect(() => getCallFrame()).not.toThrow(TypeError)
+})

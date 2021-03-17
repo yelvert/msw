@@ -21,6 +21,10 @@ const plugins = [
     mainFields: ['module', 'main', 'jsnext:main', 'browser'],
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
   }),
+  replace({
+    preventAssignment: true,
+    'process.env.NODE_ENV': JSON.stringify('development'),
+  }),
   integrityCheck({
     checksumPlaceholder: '<INTEGRITY_CHECKSUM>',
     input: SERVICE_WORKER_SOURCE_PATH,
@@ -33,7 +37,7 @@ const plugins = [
 ]
 
 /**
- * Configuration for the ESM build
+ * Configuration for the ESM build.
  */
 const buildEsm = {
   input: [
@@ -54,7 +58,7 @@ const buildEsm = {
 }
 
 /**
- * Configuration for the UMD build
+ * Configuration for the UMD build.
  */
 const buildUmd = {
   input: 'src/index.ts',
@@ -67,6 +71,9 @@ const buildUmd = {
   plugins,
 }
 
+/**
+ * Configuration for the Node.js (CJS) build.
+ */
 const buildNode = {
   input: 'src/node/index.ts',
   external: [
@@ -79,7 +86,7 @@ const buildNode = {
     'timers',
     'node-request-interceptor',
     /**
-     * Exclude NodeJS request interceptors from being compiled.
+     * Exclude Node.js request interceptors from being compiled.
      * @see https://github.com/mswjs/node-request-interceptor/issues/52
      */
     'node-request-interceptor/lib/interceptors/ClientRequest',
@@ -109,6 +116,9 @@ const buildNode = {
   ],
 }
 
+/**
+ * Configuration for the React Native (CJS) build.
+ */
 const buildNative = {
   input: 'src/native/index.ts',
   external: [
@@ -118,7 +128,7 @@ const buildNative = {
     'events',
     'node-request-interceptor',
     /**
-     * Exclude NodeJS request interceptors from being compiled.
+     * Exclude Node.js request interceptors from being compiled.
      * @see https://github.com/mswjs/node-request-interceptor/issues/52
      */
     'node-request-interceptor/lib/interceptors/ClientRequest',
@@ -146,7 +156,7 @@ const buildNative = {
 }
 
 /**
- * Configuration for the iife build
+ * Configuration for the iife build.
  */
 const buildIife = {
   input: 'src/index.ts',
@@ -158,6 +168,7 @@ const buildIife = {
   },
   plugins: [
     replace({
+      preventAssignment: true,
       'process.env.NODE_ENV': JSON.stringify('production'),
     }),
     ...plugins,
